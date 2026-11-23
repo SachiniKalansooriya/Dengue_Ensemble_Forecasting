@@ -214,8 +214,7 @@ elif page == "Model insights":
 elif page == "Forecast":
     st.title("Next week's forecast")
     week = next_week["start"].iloc[0]
-    st.markdown(f"Forecast from the saved **LightGBM** model for the week starting **{week:%d %B %Y}**. "
-                "Risk levels: Low (0–20 cases), Medium (21–100), High (over 100).")
+    st.markdown("Risk levels: Low (0–20 cases), Medium (21–100), High (over 100).")
     nw = next_week.copy()
     nw["forecast"] = np.round(np.clip(np.expm1(model.predict(nw[feature_cols])), 0, None))
     nw["risk"] = nw["forecast"].apply(risk_level)
