@@ -19,7 +19,7 @@ TYPE_COLORS = {"Baseline": "#8c8c8c", "Single model": "#c8b28a", "Bagging": "#4c
                "Hybrid": "#e45756"}
 
 
-# data loading
+# ---------- data loading ----------
 @st.cache_data
 def load_data():
     history = pd.read_csv(DATA / "history.csv", parse_dates=["start"])
@@ -49,11 +49,23 @@ RISK_COLORS = {"Low": "#54a24b", "Medium": "#f58518", "High": "#e45756"}
 
 history, results, preds, importance, next_week = load_data()
 model, feature_cols = load_model()
+
+# one model per approach (plus baseline and single tree for reference)
+SHOW = ["Same as last week", "Decision Tree", "Random Forest", "LightGBM",
+        "Stacking (RF+XGB+LGBM+CatBoost)", "Hybrid RF + ARIMA"]
+results = results[results["Model"].isin(SHOW)].sort_values("RMSE").reset_index(drop=True)
+preds = preds[["district", "start", "cases"] + [m for m in SHOW if m in preds.columns]]
+
+# accuracy-style percentages for every model
+actual_risk = preds["cases"].apply(risk_level)
+results["Accuracy (R² %)"] = (results["R2"] * 100).round(1)
+results["Risk-level accuracy %"] = results["Model"].apply(
+    lambda m: round((preds[m].apply(risk_level) == actual_risk).mean() * 100, 1) if m in preds else np.nan)
 best = results[results["Type"] != "Baseline"].iloc[0]
 baseline_rmse = results.loc[results["Type"] == "Baseline", "RMSE"].iloc[0]
 districts = sorted(history["district"].unique())
 
-# sidebar 
+# ---------- sidebar ----------
 st.sidebar.title("🦟 Dengue Forecasting")
 page = st.sidebar.radio("Go to", ["Home", "Data explorer", "Model comparison",
                                   "Model insights", "Forecast"])
@@ -62,7 +74,7 @@ st.sidebar.caption(f"Data: {history['start'].min():%d %b %Y} to {history['start'
 st.sidebar.caption(f"{len(districts)} districts · {len(history):,} district-weeks")
 st.sidebar.caption("Sources: Epidemiology Unit, Ministry of Health Sri Lanka (via denguedatahub); Open-Meteo weather archive.")
 
-# pages
+# ---------- pages ----------
 if page == "Home":
     st.title("Forecasting weekly dengue cases in Sri Lanka")
     st.markdown(
@@ -77,8 +89,11 @@ if page == "Home":
     c2.metric("Worst year on record", "2017",
               f"{history.loc[history['start'].dt.year == 2017, 'cases'].sum():,.0f} cases", delta_color="off")
     c3.metric("Best model", best["Model"].split(" (")[0])
-    c4.metric("Best model R²", f"{best['R2']:.3f}",
+    c4.metric("Best model accuracy (R²)", f"{best['R2'] * 100:.1f}%",
               f"{best['Skill vs baseline']:.1%} better than baseline")
+    st.caption(f"R² = share of week-to-week variation in dengue cases explained by the model. "
+               f"Risk-level accuracy (Low / Medium / High) of the best model: "
+               f"{best['Risk-level accuracy %']:.1f}%.")
 
     yearly = history.groupby(history["start"].dt.year)["cases"].sum().reset_index()
     yearly.columns = ["Year", "Cases"]
@@ -131,29 +146,37 @@ elif page == "Model comparison":
     show = results.copy()
     st.dataframe(show.style.format({"RMSE": "{:.2f}", "MAE": "{:.2f}", "R2": "{:.3f}",
                                     "Skill vs baseline": "{:.1%}", "Outbreak-week MAE": "{:.1f}",
-                                    "Train time (s)": "{:.1f}"})
+                                    "Train time (s)": "{:.1f}",
+                                    "Accuracy (R² %)": "{:.1f}%", "Risk-level accuracy %": "{:.1f}%"})
                  .background_gradient(subset=["RMSE"], cmap="RdYlGn_r"),
                  width="stretch", hide_index=True)
 
-    fig = px.bar(results.sort_values("RMSE", ascending=False), x="RMSE", y="Model", orientation="h",
-                 color="Type", color_discrete_map=TYPE_COLORS, height=500,
+    fig = px.bar(results, x="RMSE", y="Model", orientation="h",
+                 color="Type", color_discrete_map=TYPE_COLORS, height=420,
+                 category_orders={"Model": results.sort_values("RMSE")["Model"].tolist()},
                  title="RMSE by model (cases per week, lower is better)")
     fig.add_vline(x=baseline_rmse, line_dash="dash", line_color="black",
                   annotation_text="Same as last week", annotation_position="top")
     fig.update_xaxes(range=[results["RMSE"].min() * 0.85, results["RMSE"].max() * 1.03])
     st.plotly_chart(fig, width="stretch")
 
-    by_type = results.groupby("Type")["RMSE"].min().sort_values().reset_index()
-    st.plotly_chart(px.bar(by_type, x="Type", y="RMSE", color="Type", color_discrete_map=TYPE_COLORS,
-                           title="Best RMSE in each family"), width="stretch")
+    acc = results.sort_values("Accuracy (R² %)")
+    fig_acc = px.bar(acc, x="Accuracy (R² %)", y="Model", orientation="h", color="Type",
+                     color_discrete_map=TYPE_COLORS, height=420, text="Accuracy (R² %)",
+                     category_orders={"Model": acc.sort_values("Accuracy (R² %)", ascending=False)["Model"].tolist()},
+                     title="Accuracy: variation explained (R², %)")
+    fig_acc.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
+    fig_acc.update_xaxes(range=[acc["Accuracy (R² %)"].min() - 5, 100])
+    st.plotly_chart(fig_acc, width="stretch")
+    st.caption("Risk-level accuracy (correct Low / Medium / High class) is shown in the table above. "
+               "It is similar for all models, including the baseline, because most weeks stay in the same risk level as the week before.")
 
     st.subheader("Key findings")
     st.markdown(
-        "- **Stacking** gave the lowest error; its meta-model relied mostly on CatBoost and LightGBM.\n"
-        "- **Boosting** models beat bagging on this data: each new tree corrects earlier errors, "
-        "so they follow rises and falls more closely.\n"
-        "- **Bagging** (Random Forest) clearly beats a single decision tree, but is close to the baseline.\n"
-        "- **ARIMA alone** is the weakest; adding a Random Forest correction (hybrid) improves it noticeably.\n"
+        "- **Stacking** gave the lowest error (R² 0.908), combining the strengths of several models.\n"
+        "- **Boosting (LightGBM)** was almost as accurate and much faster, so it powers the forecast page.\n"
+        "- **Bagging (Random Forest)** clearly beats a single decision tree, but is close to the baseline.\n"
+        "- **Hybrid RF + ARIMA** beats Random Forest: ARIMA captures the time pattern, RF corrects it with weather and district.\n"
         "- Weekly dengue cases change slowly, so *same as last week* is a strong baseline."
     )
 
@@ -182,6 +205,7 @@ elif page == "Model insights":
     ob = results.sort_values("Outbreak-week MAE")
     c2.plotly_chart(px.bar(ob, x="Outbreak-week MAE", y="Model", orientation="h", color="Type",
                            color_discrete_map=TYPE_COLORS, height=500,
+                           category_orders={"Model": ob["Model"].tolist()},
                            title="Error in the busiest 10% of weeks (outbreaks)"),
                     width="stretch")
     st.caption("Recent case counts (4-week average, last week) dominate the forecast. "
