@@ -1,6 +1,7 @@
 # Dengue Ensemble Forecasting – Sri Lanka
 
 CM4371 Machine Learning & Pattern Recognition – Ensemble Learning Hands-on Assignment
+
 **Author:** Kalansooriya S.I - 224101N
 
 Forecasts **next week's dengue cases for 26 Sri Lankan health districts** and compares bagging, boosting, stacking and a hybrid model in a Streamlit dashboard.
