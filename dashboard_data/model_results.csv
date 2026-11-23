@@ -1,0 +1,12 @@
+Model,Type,RMSE,MAE,R2,Skill vs baseline,Outbreak-week MAE,Train time (s)
+Stacking (RF+XGB+LGBM+CatBoost),Stacking,29.5,13.04,0.908,0.092,51.4,327.0
+Gradient Boosting (sklearn),Boosting,29.94,13.1,0.905,0.079,51.7,51.3
+CatBoost,Boosting,30.02,13.27,0.904,0.076,53.8,7.8
+LightGBM,Boosting,30.27,13.14,0.903,0.069,51.9,2.8
+Hybrid RF + ARIMA,Hybrid,31.79,13.55,0.893,0.022,55.5,97.2
+XGBoost,Boosting,32.14,13.57,0.89,0.011,55.5,6.2
+Random Forest,Bagging,32.36,13.36,0.889,0.004,55.0,78.4
+Same as last week,Baseline,32.5,14.02,0.888,0.0,52.4,0.0
+Bagged Decision Trees,Bagging,32.88,13.5,0.885,-0.012,54.9,53.8
+Decision Tree,Single model,35.78,14.68,0.864,-0.101,62.1,0.4
+"ARIMA (2,1,1) per district",Time series,36.77,14.54,0.856,-0.132,62.3,6.8
