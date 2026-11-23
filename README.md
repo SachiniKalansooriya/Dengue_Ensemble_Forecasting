@@ -5,7 +5,7 @@ CM4371 Machine Learning & Pattern Recognition – Ensemble Learning Hands-on Ass
 
 Forecasts **next week's dengue cases for 26 Sri Lankan health districts** and compares bagging, boosting, stacking and a hybrid model in a Streamlit dashboard.
 
-- **Live dashboard:** [demo link](https://dengue-forecast-sl.streamlit.app/)
+- **Live dashboard:** [https://dengue-forecast-sl.streamlit.app/](https://dengue-forecast-sl.streamlit.app/)
 
 ## Data
 - **Dengue cases:** weekly cases by district (Dec 2006 – Aug 2026), Epidemiology Unit, Ministry of Health Sri Lanka, via [denguedatahub](https://denguedatahub.netlify.app/srilanka)
