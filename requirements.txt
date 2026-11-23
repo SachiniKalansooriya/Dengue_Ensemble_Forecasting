@@ -2,3 +2,7 @@ streamlit
 plotly
 matplotlib
 joblib
+lightgbm
+scikit-learn
+pandas
+numpy
