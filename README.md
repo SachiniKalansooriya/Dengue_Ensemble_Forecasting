@@ -24,8 +24,7 @@ Forecasts **next week's dengue cases for 26 Sri Lankan health districts** and co
 | Same as last week | Baseline | 32.50 | 0.888 |
 | Decision Tree | Single model | 35.78 | 0.864 |
 
-**Stacking performed best**, explaining 90.8% of the variation in weekly cases. **LightGBM** is used for the dashboard forecast because it is almost as accurate and trains in seconds instead of minutes.
-
+**Stacking performed best**, explaining 90.8% of the variation in weekly cases. LightGBM is used for the dashboard forecast: it is almost as accurate as stacking (R² 0.903 vs 0.908), but 67 times smaller and far more reliable to deploy. The stacking model failed to load outside Colab because of library version mismatches.
 ## Run locally
 ```
 pip install -r requirements.txt
